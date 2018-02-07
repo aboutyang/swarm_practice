@@ -1,0 +1,79 @@
+{
+    "name": "docker swarm实践",
+    "common": {
+        "title": "docker swarm在项目中的实践",
+        "footer": "如有问题请发邮件到： yangwang1@bonc.com.cn",
+        "home": "DOCKER SWARM",
+        "homeUrl": "#",
+        "navbars": []
+    },
+    "options": {
+        "markdown": {
+            "menuLevel": 4
+        }
+    },
+    "pages": [
+        {
+            "name": "index",
+            "title": "介绍",
+            "content": "./doc/index.md"
+        },
+        {
+            "name": "usage",
+            "title": "安装",
+            "content": { // 单页多模块配置
+                "sidebar": true, // 是否显示侧边目录
+                "blocks": [{
+                        "name": "环境搭建",
+                        "content": "./doc/01_install/01.docker-swarm-install.md" // 内容
+                    },
+                    {
+                        "name": "swarm 集群",
+                        "content": "./doc/01_install/02.docker-swarm-cluster.md" // 内容
+                    },
+                    {
+                        "name": "manager 节点",
+                        "content": "./doc/01_install/03.docker-swarm-manager.md" // 内容
+                    },
+                    {
+                        "name": "worker 节点",
+                        "content": "./doc/01_install/04.docker-swarm-wroker.md" // 内容
+                    }
+                ]
+            }
+        },
+        {
+            "name": "config",
+            "title": "部署",
+            "content": { // 单页多模块配置
+                "sidebar": true, // 是否显示侧边目录
+                "blocks": [{
+                        "name": "创建网络",
+                        "content": "./doc/02_deploy_service/01.create-network.md" // 内容
+                    },
+                    {
+                        "name": "服务管理",
+                        "content": "./doc/02_deploy_service/02.deploy-service.md" // 内容
+                    },
+                    {
+                        "name": "docker compose",
+                        "content": "./doc/02_deploy_service/03.swarm-compose.md" // 内容
+                    }
+                ]
+            }
+        },
+        {
+            "name": "monitor",
+            "title": "监控",
+            "content": { // 单页多模块配置
+                "sidebar": true, // 是否显示侧边目录
+                "blocks": [{
+                        "name": "监控",
+                        "content": "./doc/03_monitor/01.visualizer.md" // 内容
+                    }
+                ]
+            }
+        }
+    ],
+    "rootDir": "doc"
+}

@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>docker swarm在项目中的实践 部署</title>
+    <link rel="stylesheet" href="source/app.css"/>
+    <link rel="stylesheet" href="source/highlight.min.css">
+</head>
+<body>
+<a id="skippy" class="sr-only sr-only-focusable" href="#content"><div class="container"><span class="skiplink-text">Skip to main content</span></div></a>
+
+
+<!-- Docs master nav -->
+<header class="navbar navbar-static-top docs-nav" id="top" role="banner">
+    <div class="container">
+        <div class="navbar-header">
+            <button class="navbar-toggle collapsed" type="button" data-toggle="collapse" data-target="#bs-navbar" aria-controls="bs-navbar" aria-expanded="false">
+                <span class="sr-only">Toggle navigation</span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+                <span class="icon-bar"></span>
+            </button>
+            
+            <a href="#" class="navbar-brand">DOCKER SWARM</a>
+            
+        </div>
+        <nav id="bs-navbar" class="collapse navbar-collapse">
+            <ul class="nav navbar-nav navbar-left">
+                
+                    
+                    <li class="">
+                        
+                        <a href="index.html">介绍</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="usage.html">安装</a>
+                        
+                    </li>
+                    
+                    <li class="active">
+                        
+                        <a href="config.html">部署</a>
+                        
+                    </li>
+                    
+                    <li class="">
+                        
+                        <a href="monitor.html">监控</a>
+                        
+                    </li>
+                    
+                
+            </ul>
+        </nav>
+    </div>
+</header>
+
+<!-- Docs page layout -->
+
+<hr style="margin: 0"/>
+
+
+
+<header style="height:20px"></header>
+
+
+<div class="container docs-container">
+    
+    <div class="row">
+        <div class="col-md-9" role="main">
+
+            
+            
+            
+            <div class="docs-section">
+                
+                
+                <h1 id="创建网络" class="page-header">创建网络</h1>
+                
+                
+                
+                <div class="markdown-body">
+                    <p>Docker跨主机网络方案包括：</p>
+<ul>
+<li>docker 原生的 overlay 和 macvlan。</li>
+<li>第三方方案：常用的包括 flannel、weave 和 calico。</li>
+</ul>
+<p><img src="./images/docker-network.png" alt="docker-network"></p>
+<h4 id="创建 overlay 网络">创建 overlay 网络</h4><pre><code>docker network create -d overlay ov_net2
+docker network create -d overlay ov_net3 --subnet 172.19.0.0/24 --gateway 172.19.0.1
+</code></pre><h4 id="查看 netwrok 状态">查看 netwrok 状态</h4><pre><code>[root@manager-1 ~]# docker network ls
+NETWORK ID          NAME                 DRIVER              SCOPE
+cc5cd5eabb87        bridge               bridge              local
+df4c96226ccf        docker_gwbridge      bridge              local
+ff0595086328        host                 host                local
+ied7pqtp3pvq        ingress              overlay             swarm
+z4ehwcl51qws        mysqlcluster         overlay             swarm
+d7d2a11f55e2        nexus_default        bridge              local
+4e3fbf78688a        none                 null                local
+7b4a0049c446        visualizer_default   bridge              local
+</code></pre>
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="docs-section">
+                
+                
+                <h1 id="服务管理" class="page-header">服务管理</h1>
+                
+                
+                
+                <div class="markdown-body">
+                    <p>使用 docker service 命令来管理 Swarm 集群中的服务，该命令只能在管理节点运行。</p>
+<h4 id="新建服务">新建服务</h4><p>在我们在上一节创建的 Swarm 集群中运行一个名为 nginx 服务。</p>
+<pre><code>docker service create --replicas 3 -p 80:80 --name nginx nginx:1.13.7-alpine
+</code></pre><p>现在我们使用浏览器，输入任意节点 IP ,即可看到 nginx 默认页面。</p>
+<h4 id="查看服务">查看服务</h4><p>使用 docker service ls 来查看当前 Swarm 集群运行的服务。</p>
+<pre><code>$ docker service ls
+ID                  NAME                MODE                REPLICAS            IMAGE                 PORTS
+kc57xffvhul5        nginx               replicated          3/3                 nginx:1.13.7-alpine   *:80-&gt;80/tcp
+</code></pre><p>使用 docker service ps 来查看某个服务的详情。</p>
+<pre><code>$ docker service ps nginx
+ID                  NAME                IMAGE                 NODE                DESIRED STATE       CURRENT STATE                ERROR               PORTS
+pjfzd39buzlt        nginx.1             nginx:1.13.7-alpine   swarm2              Running             Running about a minute ago
+hy9eeivdxlaa        nginx.2             nginx:1.13.7-alpine   swarm1              Running             Running about a minute ago
+36wmpiv7gmfo        nginx.3             nginx:1.13.7-alpine   swarm3              Running             Running about a minute ago
+</code></pre><p>使用 docker service logs 来查看某个服务的日志。</p>
+<pre><code>$ docker service logs nginx
+nginx.3.36wmpiv7gmfo@swarm3    | 10.255.0.4 - - [25/Nov/2017:02:10:30 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:58.0) Gecko/20100101 Firefox/58.0&quot; &quot;-&quot;
+nginx.3.36wmpiv7gmfo@swarm3    | 10.255.0.4 - - [25/Nov/2017:02:10:30 +0000] &quot;GET /favicon.ico HTTP/1.1&quot; 404 169 &quot;-&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:58.0) Gecko/20100101 Firefox/58.0&quot; &quot;-&quot;
+nginx.3.36wmpiv7gmfo@swarm3    | 2017/11/25 02:10:30 [error] 5#5: *1 open() &quot;/usr/share/nginx/html/favicon.ico&quot; failed (2: No such file or directory), client: 10.255.0.4, server: localhost, request: &quot;GET /favicon.ico HTTP/1.1&quot;, host: &quot;192.168.99.102&quot;
+nginx.1.pjfzd39buzlt@swarm2    | 10.255.0.2 - - [25/Nov/2017:02:10:26 +0000] &quot;GET / HTTP/1.1&quot; 200 612 &quot;-&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:58.0) Gecko/20100101 Firefox/58.0&quot; &quot;-&quot;
+nginx.1.pjfzd39buzlt@swarm2    | 10.255.0.2 - - [25/Nov/2017:02:10:27 +0000] &quot;GET /favicon.ico HTTP/1.1&quot; 404 169 &quot;-&quot; &quot;Mozilla/5.0 (Macintosh; Intel Mac OS X 10.13; rv:58.0) Gecko/20100101 Firefox/58.0&quot; &quot;-&quot;
+nginx.1.pjfzd39buzlt@swarm2    | 2017/11/25 02:10:27 [error] 5#5: *1 open() &quot;/usr/share/nginx/html/favicon.ico&quot; failed (2: No such file or directory), client: 10.255.0.2, server: localhost, request: &quot;GET /favicon.ico HTTP/1.1&quot;, host: &quot;192.168.99.101&quot;
+</code></pre><h4 id="删除服务">删除服务</h4><p>使用 docker service rm 来从 Swarm 集群移除某个服务。</p>
+<pre><code>$ docker service rm nginx
+</code></pre>
+                </div>
+                
+            </div>
+            
+            
+            
+            <div class="docs-section">
+                
+                
+                <h1 id="docker compose" class="page-header">docker compose</h1>
+                
+                
+                
+                <div class="markdown-body">
+                    <p>在 Swarm 集群中也可以使用 compose 文件 （docker-compose.yml） 来配置、启动多个服务。我们使用 docker service create 一次只能部署一个服务，使用 docker-compose.yml 我们可以一次启动多个关联的服务。</p>
+<h4 id="使用 compose">使用 compose</h4><pre><code>version: &quot;3&quot;
+
+services:
+
+    mysql01:
+        image: voogd/mysql_repl:5.7
+        ports:
+            - &quot;3307:3306&quot;
+        networks:
+            - mysqlcluster
+        environment:
+            - MYSQL_ROOT_PASSWORD=root
+            - SERVER_ID=1
+            - BIND_ADDRESS=0.0.0.0
+        volumes:
+            - /var/dockerdata/mysqlcluster/mysql01/lib:/var/lib/mysql
+            - /var/dockerdata/mysqlcluster/mysql01/conf.d:/etc/mysql/conf.d
+            - /var/dockerdata/mysqlcluster/mysql01/initdb.d:/docker-entrypoint-initdb.d
+            - /var/dockerdata/mysqlcluster/mysql01/log:/var/log/mysql
+        deploy:
+            mode: replicated
+            replicas: 1
+            update_config:
+                parallelism: 1
+                delay: 60s
+            restart_policy:
+                condition: none
+                max_attempts: 5
+            placement:
+                constraints: [node.role == manager]
+
+networks:
+    mysqlcluster:
+        external: true
+</code></pre><h4 id="部署服务">部署服务</h4><p>部署服务使用 docker stack deploy，其中 -c 参数指定 compose 文件名。</p>
+<pre><code>docker stack deploy --compose-file mysql-master.yml mysqlcluster
+</code></pre><table>
+<thead>
+<tr>
+<th>名字，简写</th>
+<th>默认</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>--bundle-file</td>
+<td></td>
+<td>分布式应用程序包文件的路径</td>
+</tr>
+<tr>
+<td>--compose-file, -c</td>
+<td></td>
+<td>Compose文件的路径</td>
+</tr>
+<tr>
+<td>--with-registry-auth</td>
+<td>false</td>
+<td>将注册表身份验证详细信息发送给Swarm代理</td>
+</tr>
+</tbody>
+</table>
+<h4 id="查看服务">查看服务</h4><pre><code>docker stack ls[root@manager-1 ~]# docker stack ls
+NAME                SERVICES
+mysqlcluster        3
+</code></pre><h4 id="移除服务">移除服务</h4><pre><code>[root@manager-1 ~]# docker stack down mysqlcluster
+Removing service mysqlcluster_mysql01
+Removing service mysqlcluster_mysql02
+Removing service mysqlcluster_mysql03
+</code></pre><p>该命令不会移除服务所使用的 数据卷，如果你想移除数据卷请使用 docker volume rm</p>
+
+                </div>
+                
+            </div>
+            
+            
+        </div>
+        
+        <div class="col-md-3" role="complementary">
+            <nav class="docs-sidebar hidden-print hidden-xs hidden-sm">
+                <ul class="nav docs-sidenav">
+                    
+                    
+                    <li>
+                        <a href="#创建网络">创建网络</a>
+                    </li>
+                    
+                    
+                    
+                    
+                    <ul class="nav" style="display:block">
+                    
+                        <li>
+                            <a href="#创建 overlay 网络">创建 overlay 网络</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#查看 netwrok 状态">查看 netwrok 状态</a>
+                        </li>
+                    
+                    </ul>
+                    
+                    
+                    
+                    
+                    <li>
+                        <a href="#服务管理">服务管理</a>
+                    </li>
+                    
+                    
+                    
+                    
+                    <ul class="nav" style="display:block">
+                    
+                        <li>
+                            <a href="#新建服务">新建服务</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#查看服务">查看服务</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#删除服务">删除服务</a>
+                        </li>
+                    
+                    </ul>
+                    
+                    
+                    
+                    
+                    <li>
+                        <a href="#docker compose">docker compose</a>
+                    </li>
+                    
+                    
+                    
+                    
+                    <ul class="nav" style="display:block">
+                    
+                        <li>
+                            <a href="#使用 compose">使用 compose</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#部署服务">部署服务</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#查看服务">查看服务</a>
+                        </li>
+                    
+                    
+                    
+                    
+                    
+                        <li>
+                            <a href="#移除服务">移除服务</a>
+                        </li>
+                    
+                    
+                    
+                </ul>
+            </nav>
+        </div>
+        
+    </div>
+    
+</div>
+
+<!-- Footer
+================================================== -->
+<footer class="docs-footer" role="contentinfo">
+    <div class="container">
+        <p>如有问题请发邮件到： yangwang1@bonc.com.cn</p>
+    </div>
+</footer>
+
+<script src="source/jquery.min.js"></script>
+<script src="source/bootstrap.min.js"></script>
+<script src="source/docs.min.js"></script>
+<script src="source/highlight.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('code').each(function(i, block) {
+            if (block.innerHTML.indexOf('\n') != -1) {
+                var pn = block.parentNode;
+                if (pn.tagName.toUpperCase() == 'PRE') {
+                    try {
+                        hljs.highlightBlock(block);
+                    } catch(e) {}
+                } else {
+                    pn.innerHTML = '<pre><code>' + block.innerHTML + '</code></pre>';
+                    try {
+                        hljs.highlightBlock(pn.childNodes[0].childNodes[0]);
+                    } catch(e) {}
+                }
+            }
+        });
+
+        var winHeight = $(window).height() - 40,
+            sidebar = $('.docs-sidebar');
+
+        if (sidebar.height() > winHeight) {
+
+            sidebar.css('max-height', winHeight + 'px');
+            sidebar.css('overflow', 'scroll');
+
+            var activeMenu,
+                barScroll = false;
+
+            sidebar.on('mouseover', function() {
+                barScroll = true;
+            });
+
+            sidebar.on('mouseout', function() {
+                barScroll = false;
+            });
+            if (!barScroll) {
+                var activeItem = $('.docs-sidebar li.active a');
+                if (activeItem.length) {
+                    if (!activeMenu || (activeMenu.attr('href') != activeItem.attr('href'))) {
+                        activeMenu = activeItem;
+                        var top = activeMenu.offset().top - sidebar.offset().top;
+                        if (top < 0) {
+                            sidebar.scrollTop(sidebar.scrollTop() + top);
+                        } else if (top > winHeight - 30) {
+                            sidebar.scrollTop(sidebar.scrollTop() + top - winHeight + 30);
+                        }
+                    }
+                }
+            }
+            $(window).on('scroll', function(e) {
+                if (!barScroll) {
+                    var activeItem = $('.docs-sidebar li.active a');
+                    if (activeItem.length) {
+                        if (!activeMenu || (activeMenu.attr('href') != activeItem.attr('href'))) {
+                            activeMenu = activeItem;
+                            var top = activeMenu.offset().top - sidebar.offset().top;
+                            if (top < 0) {
+                                sidebar.scrollTop(sidebar.scrollTop() + top);
+                            } else if (top > winHeight - 30) {
+                                sidebar.scrollTop(sidebar.scrollTop() + top - winHeight + 30);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+</body>
+</html>
